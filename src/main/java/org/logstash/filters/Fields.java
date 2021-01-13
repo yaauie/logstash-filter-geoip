@@ -22,6 +22,9 @@ package org.logstash.filters;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 
 enum Fields {
   AUTONOMOUS_SYSTEM_NUMBER("asn"),
@@ -54,6 +57,15 @@ enum Fields {
     return fieldName;
   }
 
+  private static final Map<String,Fields> MAPPING;
+  static {
+    final Map<String,Fields> mapping = new HashMap<>();
+    for (Fields value : values()) {
+      mapping.put(value.fieldName().toUpperCase(Locale.ROOT), value);
+    }
+    MAPPING = Collections.unmodifiableMap(mapping);
+  }
+
   static final EnumSet<Fields> ALL_FIELDS = EnumSet.allOf(Fields.class);
 
   static final EnumSet<Fields> DEFAULT_CITY_FIELDS = EnumSet.of(Fields.IP, Fields.CITY_NAME,
@@ -71,11 +83,11 @@ enum Fields {
       Fields.AUTONOMOUS_SYSTEM_ORGANIZATION);
 
   public static Fields parseField(String value) {
-    try {
-      return valueOf(value.toUpperCase(Locale.ROOT));
-    } catch (IllegalArgumentException e) {
+    final Fields fields = MAPPING.get(value.toUpperCase(Locale.ROOT));
+    if (fields == null) {
       throw new IllegalArgumentException("illegal field value " + value + ". valid values are " +
           Arrays.toString(ALL_FIELDS.toArray()));
     }
+    return fields;
   }
 }

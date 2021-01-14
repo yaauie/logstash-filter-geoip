@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.logstash.filters;
+package org.logstash.filters.geoip;
 
 import com.maxmind.db.CHMCache;
 import com.maxmind.db.InvalidDatabaseException;

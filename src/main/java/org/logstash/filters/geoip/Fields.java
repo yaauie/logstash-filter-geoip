@@ -1,4 +1,4 @@
-package org.logstash.filters;
+package org.logstash.filters.geoip;
 
 /*
  * Licensed to Elasticsearch under one or more contributor

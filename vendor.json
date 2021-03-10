@@ -1,10 +1,10 @@
 [
     {
-        "url": "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz",
-        "sha1": "8632d2abf2672fb33aec3845d0dcbb82986d1b4a"
+        "url": "https://storage.googleapis.com/elastic-paisano-production/maxmind/GeoLite2-City.mmdb.gz?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=elastic-paisano-production%40elastic-apps-163815.iam.gserviceaccount.com%2F20210107%2Fhenk%2Fstorage%2Fgoog4_request&X-Goog-Date=20210107T135955Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&X-Goog-Signature=7e03e8ea5dfd2edfab99bd471105009479754e379248f173b61d1f55cc4cac2f7fadfc76bb1da062bebe530b6b1f482a83305a27bd5ab0be2eec9d5801f5690f2c05c2c333ce312b7e739090956a78c3ee1a54382b8b94edd3bd83fdabd4ae4d722fed0aad078e3c0cd920b7f9467f84969df0a3dcde569eb2763e4f0b96a739891efb5180d150aac41375697cb94d88018d1aa9877f98937003cdba6c5770b40334b5d43ba302eb12f5765c67c49269418512127d4ee5315c3d8dd8c07a4261ff04477e230e96cb5a622fab944b2cc98f83eb532708f8ec42fa23e47a62ba800bd939bf29d6bf2afc20a6835500f67b7a2063663c4bb53a6a2f3d982a1822bc",
+        "sha1": "10e7c48a109ffbe60fa7ab3585c4bd711942cbd2"
     },
     {
-        "url": "https://s3.amazonaws.com/download.elasticsearch.org/logstash/maxmind/GeoLite2-ASN.mmdb",
+        "url": "https://storage.googleapis.com/elastic-paisano-production/maxmind/GeoLite2-City.mmdb.gz?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=elastic-paisano-production%40elastic-apps-163815.iam.gserviceaccount.com%2F20210107%2Fhenk%2Fstorage%2Fgoog4_request&X-Goog-Date=20210107T135955Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&X-Goog-Signature=7e03e8ea5dfd2edfab99bd471105009479754e379248f173b61d1f55cc4cac2f7fadfc76bb1da062bebe530b6b1f482a83305a27bd5ab0be2eec9d5801f5690f2c05c2c333ce312b7e739090956a78c3ee1a54382b8b94edd3bd83fdabd4ae4d722fed0aad078e3c0cd920b7f9467f84969df0a3dcde569eb2763e4f0b96a739891efb5180d150aac41375697cb94d88018d1aa9877f98937003cdba6c5770b40334b5d43ba302eb12f5765c67c49269418512127d4ee5315c3d8dd8c07a4261ff04477e230e96cb5a622fab944b2cc98f83eb532708f8ec42fa23e47a62ba800bd939bf29d6bf2afc20a6835500f67b7a2063663c4bb53a6a2f3d982a1822bc",
         "sha1": "d968898454106a56a9b5a5d0e7f7465fc93c6800"
     },
     {

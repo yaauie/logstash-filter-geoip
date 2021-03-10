@@ -19,42 +19,71 @@ package org.logstash.filters.geoip;
  * under the License.
  */
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 enum Fields {
-  AUTONOMOUS_SYSTEM_NUMBER("asn"),
-  AUTONOMOUS_SYSTEM_ORGANIZATION("as_org"),
-  CITY_NAME("city_name"),
-  COUNTRY_NAME("country_name"),
-  CONTINENT_CODE("continent_code"),
-  CONTINENT_NAME("continent_name"),
-  COUNTRY_CODE2("country_code2"),
+  AUTONOMOUS_SYSTEM_NUMBER("as.number", "asn"),
+  AUTONOMOUS_SYSTEM_ORGANIZATION("as.organization.name", "as_org"),
+  CITY_NAME("geo.city_name", "city_name"),
+  COUNTRY_NAME("geo.country_name", "country_name"),
+  CONTINENT_CODE("geo.continent_code", "continent_code"),
+  CONTINENT_NAME("geo.continent_name", "continent_name"),
+  COUNTRY_CODE2("geo.country_iso_code", "country_code2"),
   COUNTRY_CODE3("country_code3"),
   IP("ip"),
-  ISP("isp"),
-  POSTAL_CODE("postal_code"),
-  DMA_CODE("dma_code"),
-  REGION_NAME("region_name"),
-  REGION_CODE("region_code"),
-  TIMEZONE("timezone"),
-  LOCATION("location"),
-  LATITUDE("latitude"),
-  LONGITUDE("longitude"),
-  ORGANIZATION("organization");
+  ISP("mmdb.isp", "isp"),
+  POSTAL_CODE("geo.postal_code", "postal_code"),
+  DMA_CODE("mmdb.dma_code", "dma_code"),
+  REGION_NAME("geo.region_name", "region_name"),
+  REGION_CODE("geo.region_code", "region_code"),
+  TIMEZONE("geo.timezone", "timezone"),
+  LOCATION("geo.location", "location"),
+  LATITUDE("geo.location.lat", "latitude"),
+  LONGITUDE("geo.location.lon", "longitude"),
+  ORGANIZATION("mmdb.organization", "organization");
 
-  private String fieldName;
+  private final String fieldName;
+  private final String ecsFieldName;
 
+  private final String fieldReferenceLegacy;
+  private final String fieldReferenceECSv1;
+
+  @Deprecated
   Fields(String fieldName) {
-    this.fieldName = fieldName;
+    this(fieldName, fieldName);
+  }
+
+  Fields(final String ecsFieldName, final String legacyFieldName) {
+    this.fieldName = legacyFieldName;
+    this.ecsFieldName = ecsFieldName;
+
+    this.fieldReferenceLegacy = normalizeFieldReferenceFragment(fieldName);
+    this.fieldReferenceECSv1 = normalizeFieldReferenceFragment(ecsFieldName);
   }
 
   public String fieldName() {
     return fieldName;
+  }
+
+  public String getEcsFieldName() {
+    return this.ecsFieldName;
+  }
+
+  public String getFieldReferenceLegacy() {
+    return this.fieldReferenceLegacy;
+  }
+
+  public String getFieldReferenceECSv1() {
+    return this.fieldReferenceECSv1;
   }
 
   private static final Map<String,Fields> MAPPING;
@@ -89,5 +118,11 @@ enum Fields {
           Arrays.toString(ALL_FIELDS.toArray()));
     }
     return fields;
+  }
+
+  private static String normalizeFieldReferenceFragment(final String fieldName) {
+    return  Stream.of(StringUtils.split(fieldName, '.'))
+                  .map((f) -> "[" + f + "]")
+                  .collect(Collectors.joining());
   }
 }

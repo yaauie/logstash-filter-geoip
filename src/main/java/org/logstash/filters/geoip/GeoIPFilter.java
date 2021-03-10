@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.function.Function;
 
 public class GeoIPFilter {
   private static Logger logger = LogManager.getLogger();
@@ -61,8 +62,13 @@ public class GeoIPFilter {
   private final String targetField;
   private final Set<Fields> desiredFields;
   private final DatabaseReader databaseReader;
+  private final boolean ecsCompatibilityEnabled;
+
+  private final Function<Fields,String> fieldReferenceExtractor;
 
   public GeoIPFilter(String sourceField, String targetField, List<String> fields, String databasePath, int cacheSize) {
+    this.ecsCompatibilityEnabled = false;
+    this.fieldReferenceExtractor = this.ecsCompatibilityEnabled ? Fields::getFieldReferenceECSv1 : Fields::getFieldReferenceLegacy;
     this.sourceField = sourceField;
     this.targetField = targetField;
     final File database = new File(databasePath);
@@ -129,7 +135,7 @@ public class GeoIPFilter {
       return false;
     }
 
-    Map<String, Object> geoData = new HashMap<>();
+    Map<Fields, Object> geoData = new HashMap<>();
 
     try {
       final InetAddress ipAddress = InetAddress.getByName(ip);
@@ -167,7 +173,7 @@ public class GeoIPFilter {
     return applyGeoData(geoData, event);
   }
 
-  private boolean applyGeoData(Map<String, Object> geoData, Event event) {
+  private boolean applyGeoData(Map<Fields, Object> geoData, Event event) {
     if (geoData == null) {
       return false;
     }
@@ -180,14 +186,16 @@ public class GeoIPFilter {
       return false;
     }
 
-    String s = "[" + this.targetField + "][";
-    for (Map.Entry<String, Object> it: geoData.entrySet()) {
-      event.setField(s + it.getKey() + "]", it.getValue());
+    String targetFieldReference = "[" + this.targetField + "]";
+    for (Map.Entry<Fields, Object> it: geoData.entrySet()) {
+      final Fields field = it.getKey();
+      final String subFieldReference = this.fieldReferenceExtractor.apply(field);
+      event.setField(targetFieldReference + subFieldReference, it.getValue());
     }
     return true;
   }
 
-  private Map<String,Object> retrieveCityGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
+  private Map<Fields,Object> retrieveCityGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
     CityResponse response = databaseReader.city(ipAddress);
     Country country = response.getCountry();
     City city = response.getCity();
@@ -195,7 +203,7 @@ public class GeoIPFilter {
     Continent continent = response.getContinent();
     Postal postal = response.getPostal();
     Subdivision subdivision = response.getMostSpecificSubdivision();
-    Map<String, Object> geoData = new HashMap<>();
+    Map<Fields, Object> geoData = new HashMap<>();
 
     // if location is empty, there is no point populating geo data
     // and most likely all other fields are empty as well
@@ -208,70 +216,70 @@ public class GeoIPFilter {
         case CITY_NAME:
           String cityName = city.getName();
           if (cityName != null) {
-            geoData.put(Fields.CITY_NAME.fieldName(), cityName);
+            geoData.put(Fields.CITY_NAME, cityName);
           }
           break;
         case CONTINENT_CODE:
           String continentCode = continent.getCode();
           if (continentCode != null) {
-            geoData.put(Fields.CONTINENT_CODE.fieldName(), continentCode);
+            geoData.put(Fields.CONTINENT_CODE, continentCode);
           }
           break;
         case CONTINENT_NAME:
           String continentName = continent.getName();
           if (continentName != null) {
-            geoData.put(Fields.CONTINENT_NAME.fieldName(), continentName);
+            geoData.put(Fields.CONTINENT_NAME, continentName);
           }
           break;
         case COUNTRY_NAME:
           String countryName = country.getName();
           if (countryName != null) {
-            geoData.put(Fields.COUNTRY_NAME.fieldName(), countryName);
+            geoData.put(Fields.COUNTRY_NAME, countryName);
           }
           break;
         case COUNTRY_CODE2:
           String countryCode2 = country.getIsoCode();
           if (countryCode2 != null) {
-            geoData.put(Fields.COUNTRY_CODE2.fieldName(), countryCode2);
+            geoData.put(Fields.COUNTRY_CODE2, countryCode2);
           }
           break;
         case COUNTRY_CODE3:
           String countryCode3 = country.getIsoCode();
           if (countryCode3 != null) {
-            geoData.put(Fields.COUNTRY_CODE3.fieldName(), countryCode3);
+            geoData.put(Fields.COUNTRY_CODE3, countryCode3);
           }
           break;
         case IP:
-          geoData.put(Fields.IP.fieldName(), ipAddress.getHostAddress());
+          geoData.put(Fields.IP, ipAddress.getHostAddress());
           break;
         case POSTAL_CODE:
           String postalCode = postal.getCode();
           if (postalCode != null) {
-            geoData.put(Fields.POSTAL_CODE.fieldName(), postalCode);
+            geoData.put(Fields.POSTAL_CODE, postalCode);
           }
           break;
         case DMA_CODE:
           Integer dmaCode = location.getMetroCode();
           if (dmaCode != null) {
-            geoData.put(Fields.DMA_CODE.fieldName(), dmaCode);
+            geoData.put(Fields.DMA_CODE, dmaCode);
           }
           break;
         case REGION_NAME:
           String subdivisionName = subdivision.getName();
           if (subdivisionName != null) {
-            geoData.put(Fields.REGION_NAME.fieldName(), subdivisionName);
+            geoData.put(Fields.REGION_NAME, subdivisionName);
           }
           break;
         case REGION_CODE:
           String subdivisionCode = subdivision.getIsoCode();
           if (subdivisionCode != null) {
-            geoData.put(Fields.REGION_CODE.fieldName(), subdivisionCode);
+            geoData.put(Fields.REGION_CODE, subdivisionCode);
           }
           break;
         case TIMEZONE:
           String locationTimeZone = location.getTimeZone();
           if (locationTimeZone != null) {
-            geoData.put(Fields.TIMEZONE.fieldName(), locationTimeZone);
+            geoData.put(Fields.TIMEZONE, locationTimeZone);
           }
           break;
         case LOCATION:
@@ -281,19 +289,19 @@ public class GeoIPFilter {
             Map<String, Object> locationObject = new HashMap<>();
             locationObject.put("lat", latitude);
             locationObject.put("lon", longitude);
-            geoData.put(Fields.LOCATION.fieldName(), locationObject);
+            geoData.put(Fields.LOCATION, locationObject);
           }
           break;
         case LATITUDE:
           Double lat = location.getLatitude();
           if (lat != null) {
-            geoData.put(Fields.LATITUDE.fieldName(), lat);
+            geoData.put(Fields.LATITUDE, lat);
           }
           break;
         case LONGITUDE:
           Double lon = location.getLongitude();
           if (lon != null) {
-            geoData.put(Fields.LONGITUDE.fieldName(), lon);
+            geoData.put(Fields.LONGITUDE, lon);
           }
           break;
       }
@@ -302,33 +310,33 @@ public class GeoIPFilter {
     return geoData;
   }
 
-  private Map<String,Object> retrieveCountryGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
+  private Map<Fields,Object> retrieveCountryGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
     CountryResponse response = databaseReader.country(ipAddress);
     Country country = response.getCountry();
     Continent continent = response.getContinent();
-    Map<String, Object> geoData = new HashMap<>();
+    Map<Fields, Object> geoData = new HashMap<>();
 
     for (Fields desiredField : this.desiredFields) {
       switch (desiredField) {
         case IP:
-          geoData.put(Fields.IP.fieldName(), ipAddress.getHostAddress());
+          geoData.put(Fields.IP, ipAddress.getHostAddress());
           break;
         case COUNTRY_CODE2:
           String countryCode2 = country.getIsoCode();
           if (countryCode2 != null) {
-            geoData.put(Fields.COUNTRY_CODE2.fieldName(), countryCode2);
+            geoData.put(Fields.COUNTRY_CODE2, countryCode2);
           }
           break;
         case COUNTRY_NAME:
           String countryName = country.getName();
           if (countryName != null) {
-            geoData.put(Fields.COUNTRY_NAME.fieldName(), countryName);
+            geoData.put(Fields.COUNTRY_NAME, countryName);
           }
           break;
         case CONTINENT_NAME:
           String continentName = continent.getName();
           if (continentName != null) {
-            geoData.put(Fields.CONTINENT_NAME.fieldName(), continentName);
+            geoData.put(Fields.CONTINENT_NAME, continentName);
           }
           break;
       }
@@ -337,37 +345,37 @@ public class GeoIPFilter {
     return geoData;
   }
 
-  private Map<String, Object> retrieveIspGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
+  private Map<Fields, Object> retrieveIspGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
     IspResponse response = databaseReader.isp(ipAddress);
 
-    Map<String, Object> geoData = new HashMap<>();
+    Map<Fields, Object> geoData = new HashMap<>();
     for (Fields desiredField : this.desiredFields) {
       switch (desiredField) {
         case IP:
-          geoData.put(Fields.IP.fieldName(), ipAddress.getHostAddress());
+          geoData.put(Fields.IP, ipAddress.getHostAddress());
           break;
         case AUTONOMOUS_SYSTEM_NUMBER:
           Integer asn = response.getAutonomousSystemNumber();
           if (asn != null) {
-            geoData.put(Fields.AUTONOMOUS_SYSTEM_NUMBER.fieldName(), asn);
+            geoData.put(Fields.AUTONOMOUS_SYSTEM_NUMBER, asn);
           }
           break;
         case AUTONOMOUS_SYSTEM_ORGANIZATION:
           String aso = response.getAutonomousSystemOrganization();
           if (aso != null) {
-            geoData.put(Fields.AUTONOMOUS_SYSTEM_ORGANIZATION.fieldName(), aso);
+            geoData.put(Fields.AUTONOMOUS_SYSTEM_ORGANIZATION, aso);
           }
           break;
         case ISP:
           String isp = response.getIsp();
           if (isp != null) {
-            geoData.put(Fields.ISP.fieldName(), isp);
+            geoData.put(Fields.ISP, isp);
           }
           break;
         case ORGANIZATION:
           String org = response.getOrganization();
           if (org != null) {
-            geoData.put(Fields.ORGANIZATION.fieldName(), org);
+            geoData.put(Fields.ORGANIZATION, org);
           }
           break;
       }
@@ -376,24 +384,24 @@ public class GeoIPFilter {
     return geoData;
   }
 
-  private Map<String, Object> retrieveAsnGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
+  private Map<Fields, Object> retrieveAsnGeoData(InetAddress ipAddress) throws GeoIp2Exception, IOException {
     AsnResponse response = databaseReader.asn(ipAddress);
-    Map<String, Object> geoData = new HashMap<>();
+    Map<Fields, Object> geoData = new HashMap<>();
     for (Fields desiredField : this.desiredFields) {
       switch (desiredField) {
         case IP:
-          geoData.put(Fields.IP.fieldName(), ipAddress.getHostAddress());
+          geoData.put(Fields.IP, ipAddress.getHostAddress());
           break;
         case AUTONOMOUS_SYSTEM_NUMBER:
           Integer asn = response.getAutonomousSystemNumber();
           if (asn != null) {
-            geoData.put(Fields.AUTONOMOUS_SYSTEM_NUMBER.fieldName(), asn);
+            geoData.put(Fields.AUTONOMOUS_SYSTEM_NUMBER, asn);
           }
           break;
         case AUTONOMOUS_SYSTEM_ORGANIZATION:
           String aso = response.getAutonomousSystemOrganization();
           if (aso != null) {
-            geoData.put(Fields.AUTONOMOUS_SYSTEM_ORGANIZATION.fieldName(), aso);
+            geoData.put(Fields.AUTONOMOUS_SYSTEM_ORGANIZATION, aso);
           }
           break;
       }
